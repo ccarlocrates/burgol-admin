@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BurGol — Panel de Administración</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0D1B2A; color: #E8EAED; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; gap: 16px;
+  }
+  #login-screen h1 { color: #C9A84C; font-size: 2rem; letter-spacing: 4px; }
+  #login-screen p  { color: #8BA0B8; font-size: 0.9rem; }
+  #login-screen input {
+    padding: 12px 16px; background: #122236; border: 1px solid #1E3550;
+    border-radius: 8px; color: #E8EAED; font-size: 1rem; width: 280px; outline: none;
+  }
+  #login-screen input:focus { border-color: #C9A84C; }
+  #login-screen button {
+    padding: 12px 32px; background: #C9A84C; color: #0D1B2A;
+    border: none; border-radius: 8px; font-size: 1rem; font-weight: bold;
+    cursor: pointer; width: 280px;
+  }
+  #login-screen button:hover { background: #E0BF6A; }
+  #login-error { color: #E53935; font-size: 0.85rem; display: none; }
+
+  /* PANEL */
+  #panel { display: none; }
+
+  header {
+    background: #0D1B2A; border-bottom: 1px solid #1E3550;
+    padding: 14px 32px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { color: #C9A84C; font-size: 1.3rem; letter-spacing: 3px; }
+  header span { color: #8BA0B8; font-size: 0.85rem; }
+  #btn-logout {
+    background: #1E3550; color: #8BA0B8; border: none; border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem;
+  }
+  #btn-logout:hover { background: #E53935; color: #fff; }
+
+  nav {
+    display: flex; gap: 4px; padding: 16px 32px;
+    border-bottom: 1px solid #1E3550; flex-wrap: wrap;
+  }
+  .tab {
+    padding: 8px 20px; border-radius: 8px; cursor: pointer;
+    background: #122236; color: #8BA0B8; border: 1px solid #1E3550;
+    font-size: 0.9rem; transition: all 0.2s;
+  }
+  .tab:hover { border-color: #C9A84C; color: #C9A84C; }
+  .tab.active { background: #C9A84C; color: #0D1B2A; border-color: #C9A84C; font-weight: bold; }
+
+  main { padding: 24px 32px; }
+
+  /* STATS */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: #122236; border: 1px solid #1E3550; border-radius: 12px;
+    padding: 20px; text-align: center;
+  }
+  .stat-card .num { font-size: 2.2rem; font-weight: bold; color: #C9A84C; }
+  .stat-card .lbl { font-size: 0.85rem; color: #8BA0B8; margin-top: 6px; }
+
+  /* SECCIONES */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-title {
+    font-size: 1.1rem; font-weight: bold; color: #C9A84C;
+    margin-bottom: 16px; letter-spacing: 1px;
+  }
+
+  /* BUSCADOR */
+  .search-bar {
+    padding: 10px 14px; background: #122236; border: 1px solid #1E3550;
+    border-radius: 8px; color: #E8EAED; font-size: 0.9rem;
+    width: 300px; outline: none; margin-bottom: 16px;
+  }
+  .search-bar:focus { border-color: #C9A84C; }
+
+  /* TABLA */
+  .tabla-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #1E3550; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: #0F2A3A; color: #C9A84C; padding: 12px 14px;
+    text-align: left; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;
+  }
+  tbody tr { border-bottom: 1px solid #1E3550; transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #0F2A3A; }
+  tbody td { padding: 11px 14px; font-size: 0.88rem; color: #E8EAED; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: bold;
+  }
+  .badge-verde    { background: #1A6B3A; color: #4ADE80; }
+  .badge-naranja  { background: #7A3D00; color: #FF8C00; }
+  .badge-gris     { background: #2A3540; color: #8BA0B8; }
+  .badge-rojo     { background: #3A0000; color: #E53935; }
+  .badge-dorado   { background: #3A2A00; color: #C9A84C; }
+
+  .loading { text-align: center; color: #8BA0B8; padding: 40px; font-size: 0.9rem; }
+  .empty   { text-align: center; color: #4E6A84; padding: 40px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ LOGIN ════════════════ -->
+<div id="login-screen">
+  <h1>BURGOL</h1>
+  <p>Panel de Administración</p>
+  <input type="password" id="input-pass" placeholder="Contraseña de administrador"
+         onkeydown="if(event.key==='Enter') comprobarPass()"/>
+  <button onclick="comprobarPass()">Entrar</button>
+  <span id="login-error">Contraseña incorrecta</span>
+</div>
+
+<!-- ════════════════ PANEL ════════════════ -->
+<div id="panel">
+  <header>
+    <h1>⚽ BURGOL ADMIN</h1>
+    <span id="header-fecha"></span>
+    <button id="btn-logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <nav>
+    <div class="tab active" onclick="mostrarTab('dashboard')">📊 Dashboard</div>
+    <div class="tab" onclick="mostrarTab('usuarios')">👥 Usuarios</div>
+    <div class="tab" onclick="mostrarTab('partidos')">🏟 Partidos</div>
+    <div class="tab" onclick="mostrarTab('reportes')">⚠️ Reportes</div>
+    <div class="tab" onclick="mostrarTab('logros')">🏆 Logros</div>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="num" id="st-usuarios">…</div><div class="lbl">Usuarios registrados</div></div>
+        <div class="stat-card"><div class="num" id="st-partidos">…</div><div class="lbl">Partidos totales</div></div>
+        <div class="stat-card"><div class="num" id="st-abiertos">…</div><div class="lbl">Partidos abiertos</div></div>
+        <div class="stat-card"><div class="num" id="st-reportes">…</div><div class="lbl">Reportes totales</div></div>
+        <div class="stat-card"><div class="num" id="st-logros">…</div><div class="lbl">Logros desbloqueados</div></div>
+        <div class="stat-card"><div class="num" id="st-valoraciones">…</div><div class="lbl">Valoraciones emitidas</div></div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="section" id="sec-usuarios">
+      <div class="section-title">Usuarios registrados</div>
+      <input class="search-bar" id="buscar-usuario" placeholder="🔍 Buscar por alias..." oninput="filtrarUsuarios()"/>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Alias</th><th>Nombre</th><th>Email</th>
+            <th>Rango</th><th>XP</th><th>Actitud</th><th>Reportes</th>
+          </tr></thead>
+          <tbody id="tbody-usuarios"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PARTIDOS -->
+    <div class="section" id="sec-partidos">
+      <div class="section-title">Partidos</div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Campo</th><th>Fecha y hora</th><th>Tipo</th>
+            <th>Jugadores</th><th>Estado</th><th>Creador</th>
+          </tr></thead>
+          <tbody id="tbody-partidos"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="section" id="sec-reportes">
+      <div class="section-title">Reportes recibidos</div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Partido</th><th>Emisor</th><th>Receptor</th><th>Motivo</th><th>Fecha</th>
+          </tr></thead>
+          <tbody id="tbody-reportes"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LOGROS -->
+    <div class="section" id="sec-logros">
+      <div class="section-title">Logros desbloqueados</div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Usuario</th><th>Logro</th><th>Fecha conseguido</th>
+          </tr></thead>
+          <tbody id="tbody-logros"><tr><td colspan="4" class="loading">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── CONFIGURACIÓN ────────────────────────────────────────────────
+const PASS         = "burgol2025";
+const SUPABASE_URL = "https://frvnrkhmvtzawmatmxjz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_olkEWBh1JTsaf078Q9Bnwg_q2Eh6rtU";
+
+// ── LOGIN ────────────────────────────────────────────────────────
+function comprobarPass() {
+  const val = document.getElementById("input-pass").value;
+  if (val === PASS) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    document.getElementById("header-fecha").textContent =
+      new Date().toLocaleDateString("es-ES", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+    cargarDashboard();
+    cargarUsuarios();
+    cargarPartidos();
+    cargarReportes();
+    cargarLogros();
+  } else {
+    document.getElementById("login-error").style.display = "block";
+  }
+}
+
+function cerrarSesion() {
+  document.getElementById("input-pass").value = "";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("panel").style.display = "none";
+  document.getElementById("login-error").style.display = "none";
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function mostrarTab(nombre) {
+  document.querySelectorAll(".tab").forEach((t, i) => {
+    const nombres = ["dashboard","usuarios","partidos","reportes","logros"];
+    t.classList.toggle("active", nombres[i] === nombre);
+  });
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById("sec-" + nombre).classList.add("active");
+}
+
+// ── SUPABASE FETCH ────────────────────────────────────────────────
+async function fetchSupabase(tabla, params = "") {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${params}`, {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    }
+  });
+  return await res.json();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+async function cargarDashboard() {
+  const [usuarios, partidos, reportes, logros, valoraciones] = await Promise.all([
+    fetchSupabase("Usuarios", "select=id_usuario"),
+    fetchSupabase("Partidos", "select=id_partido,estado"),
+    fetchSupabase("Reportes", "select=id_reporte"),
+    fetchSupabase("LogrosConseguidos", "select=id_logro_conseguido"),
+    fetchSupabase("Valoraciones", "select=id_valoracion"),
+  ]);
+  const abiertos = partidos.filter(p => p.estado === "Abierto" || p.estado === "Completo").length;
+  document.getElementById("st-usuarios").textContent     = usuarios.length;
+  document.getElementById("st-partidos").textContent     = partidos.length;
+  document.getElementById("st-abiertos").textContent     = abiertos;
+  document.getElementById("st-reportes").textContent     = reportes.length;
+  document.getElementById("st-logros").textContent       = logros.length;
+  document.getElementById("st-valoraciones").textContent = valoraciones.length;
+}
+
+// ── USUARIOS ─────────────────────────────────────────────────────
+let todosUsuarios = [];
+async function cargarUsuarios() {
+  todosUsuarios = await fetchSupabase("Usuarios",
+    "select=id_usuario,alias,nombre_real,email,nivel_rango,puntos_experiencia,val_actitud_cache,total_reportes&order=puntos_experiencia.desc");
+  renderUsuarios(todosUsuarios);
+}
+
+function renderUsuarios(lista) {
+  const tbody = document.getElementById("tbody-usuarios");
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin usuarios</td></tr>'; return; }
+  tbody.innerHTML = lista.map(u => `
+    <tr>
+      <td>${u.id_usuario}</td>
+      <td><strong style="color:#C9A84C">@${u.alias}</strong></td>
+      <td>${u.nombre_real}</td>
+      <td style="color:#8BA0B8;font-size:0.8rem">${u.email}</td>
+      <td>${badgeRango(u.nivel_rango)}</td>
+      <td><strong>${u.puntos_experiencia}</strong> XP</td>
+      <td>${(u.val_actitud_cache || 0).toFixed(1)} ★</td>
+      <td>${u.total_reportes > 0 ? `<span class="badge badge-rojo">${u.total_reportes}</span>` : `<span style="color:#4E6A84">0</span>`}</td>
+    </tr>`).join("");
+}
+
+function filtrarUsuarios() {
+  const q = document.getElementById("buscar-usuario").value.toLowerCase();
+  renderUsuarios(todosUsuarios.filter(u => u.alias.toLowerCase().includes(q) || u.nombre_real.toLowerCase().includes(q)));
+}
+
+function badgeRango(r) {
+  const map = { Debutante:"badge-gris", Promesa:"badge-naranja", Titular:"badge-gris", "Capitán":"badge-dorado", Estrella:"badge-dorado" };
+  return `<span class="badge ${map[r]||'badge-gris'}">${r}</span>`;
+}
+
+// ── PARTIDOS ─────────────────────────────────────────────────────
+async function cargarPartidos() {
+  const [partidos, campos, inscripciones, usuarios] = await Promise.all([
+    fetchSupabase("Partidos", "select=id_partido,id_creador,id_campo,fecha_hora,num_max,estado&order=id_partido.desc"),
+    fetchSupabase("Campos", "select=id_campo,nombre,tipo_campo"),
+    fetchSupabase("Inscripciones", "select=id_partido,id_usuario"),
+    fetchSupabase("Usuarios", "select=id_usuario,alias"),
+  ]);
+  const tbody = document.getElementById("tbody-partidos");
+  if (!partidos.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin partidos</td></tr>'; return; }
+  tbody.innerHTML = partidos.map(p => {
+    const campo    = campos.find(c => c.id_campo === p.id_campo) || {};
+    const inscritos = inscripciones.filter(i => i.id_partido === p.id_partido).length;
+    const creador  = usuarios.find(u => u.id_usuario === p.id_creador) || {};
+    const badgeEst = p.estado === "Abierto" ? "badge-verde" : p.estado === "Completo" ? "badge-naranja" : "badge-gris";
+    return `<tr>
+      <td>${p.id_partido}</td>
+      <td>${campo.nombre || "—"}</td>
+      <td style="color:#8BA0B8;font-size:0.82rem">${p.fecha_hora}</td>
+      <td>${campo.tipo_campo || "—"}</td>
+      <td>${inscritos} / ${p.num_max}</td>
+      <td><span class="badge ${badgeEst}">${p.estado}</span></td>
+      <td style="color:#C9A84C">@${creador.alias || p.id_creador}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── REPORTES ─────────────────────────────────────────────────────
+async function cargarReportes() {
+  const [reportes, usuarios] = await Promise.all([
+    fetchSupabase("Reportes", "select=id_reporte,id_partido,id_emisor,id_receptor,motivo,fecha&order=id_reporte.desc"),
+    fetchSupabase("Usuarios", "select=id_usuario,alias"),
+  ]);
+  const tbody = document.getElementById("tbody-reportes");
+  if (!reportes.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin reportes</td></tr>'; return; }
+  tbody.innerHTML = reportes.map(r => {
+    const emisor   = usuarios.find(u => u.id_usuario === r.id_emisor)   || {};
+    const receptor = usuarios.find(u => u.id_usuario === r.id_receptor) || {};
+    return `<tr>
+      <td>${r.id_reporte}</td>
+      <td>Partido #${r.id_partido}</td>
+      <td style="color:#8BA0B8">@${emisor.alias   || r.id_emisor}</td>
+      <td style="color:#E53935">@${receptor.alias || r.id_receptor}</td>
+      <td>${r.motivo}</td>
+      <td style="color:#4E6A84;font-size:0.8rem">${r.fecha}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── LOGROS ───────────────────────────────────────────────────────
+const NOMBRES_LOGROS = {
+  primer_partido: "Primer toque", cinco_partidos: "De la cantera",
+  diez_partidos: "Habitual", veinticinco_partidos: "Leyenda local",
+  diez_valoraciones_cinco: "Buen compañero", valorar_veinte: "Embajador",
+  cinco_partidos_creados: "Organizador", poco_margen: "Puntual", sin_reportes: "Sin tacha"
+};
+
+async function cargarLogros() {
+  const [logros, usuarios] = await Promise.all([
+    fetchSupabase("LogrosConseguidos", "select=id_logro_conseguido,id_usuario,codigo_logro,fecha_conseguido&order=id_logro_conseguido.desc"),
+    fetchSupabase("Usuarios", "select=id_usuario,alias"),
+  ]);
+  const tbody = document.getElementById("tbody-logros");
+  if (!logros.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Sin logros desbloqueados</td></tr>'; return; }
+  tbody.innerHTML = logros.map(l => {
+    const usuario = usuarios.find(u => u.id_usuario === l.id_usuario) || {};
+    return `<tr>
+      <td>${l.id_logro_conseguido}</td>
+      <td style="color:#C9A84C">@${usuario.alias || l.id_usuario}</td>
+      <td><span class="badge badge-dorado">🏆 ${NOMBRES_LOGROS[l.codigo_logro] || l.codigo_logro}</span></td>
+      <td style="color:#4E6A84;font-size:0.8rem">${l.fecha_conseguido}</td>
+    </tr>`;
+  }).join("");
+}
+</script>
+</body>
+</html>
