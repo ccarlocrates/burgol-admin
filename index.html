@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BurGol — Panel de Administración</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', sans-serif; background: #0D1B2A; color: #E8EAED; min-height: 100vh; }
@@ -59,8 +60,8 @@
 
   /* STATS */
   .stats-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px; margin-bottom: 32px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px; margin-bottom: 24px;
   }
   .stat-card {
     background: #122236; border: 1px solid #1E3550; border-radius: 12px;
@@ -69,44 +70,94 @@
   .stat-card .num { font-size: 2.2rem; font-weight: bold; color: #C9A84C; }
   .stat-card .lbl { font-size: 0.85rem; color: #8BA0B8; margin-top: 6px; }
 
+  /* DESTACADOS */
+  .destacados {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .dest-card {
+    background: #122236; border: 1px solid #1E3550; border-radius: 12px; padding: 16px;
+  }
+  .dest-card .dest-titulo { color: #8BA0B8; font-size: 0.8rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .dest-card .dest-valor  { color: #C9A84C; font-size: 1.1rem; font-weight: bold; }
+  .dest-card .dest-sub    { color: #4E6A84; font-size: 0.82rem; margin-top: 4px; }
+  .dest-card.alerta { border-color: #E53935; }
+  .dest-card.alerta .dest-valor { color: #E53935; }
+
+  /* GRAFICA */
+  .grafica-wrap {
+    background: #122236; border: 1px solid #1E3550; border-radius: 12px;
+    padding: 20px; margin-bottom: 24px; max-width: 400px;
+  }
+  .grafica-titulo { color: #8BA0B8; font-size: 0.85rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+
   /* SECCIONES */
   .section { display: none; }
   .section.active { display: block; }
-
   .section-title {
     font-size: 1.1rem; font-weight: bold; color: #C9A84C;
     margin-bottom: 16px; letter-spacing: 1px;
   }
 
-  /* BUSCADOR */
+  /* TOOLBAR */
+  .toolbar {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+  }
   .search-bar {
     padding: 10px 14px; background: #122236; border: 1px solid #1E3550;
     border-radius: 8px; color: #E8EAED; font-size: 0.9rem;
-    width: 300px; outline: none; margin-bottom: 16px;
+    width: 280px; outline: none;
   }
   .search-bar:focus { border-color: #C9A84C; }
+  .btn-export {
+    padding: 10px 18px; background: #1E3550; color: #8BA0B8;
+    border: 1px solid #2A4560; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+  }
+  .btn-export:hover { background: #2A4560; color: #E8EAED; }
 
   /* TABLA */
   .tabla-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #1E3550; }
   table { width: 100%; border-collapse: collapse; }
   thead th {
     background: #0F2A3A; color: #C9A84C; padding: 12px 14px;
-    text-align: left; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;
+    text-align: left; font-size: 0.8rem; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer; user-select: none;
+    white-space: nowrap;
   }
+  thead th:hover { background: #1A3A4A; }
+  thead th .sort-icon { margin-left: 4px; color: #4E6A84; }
   tbody tr { border-bottom: 1px solid #1E3550; transition: background 0.15s; }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: #0F2A3A; }
   tbody td { padding: 11px 14px; font-size: 0.88rem; color: #E8EAED; }
 
+  /* BOTONES ACCIÓN */
+  .btn-accion {
+    padding: 4px 10px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 0.78rem; font-weight: bold; margin-right: 4px;
+  }
+  .btn-ban   { background: #3A0000; color: #E53935; }
+  .btn-ban:hover { background: #E53935; color: #fff; }
+  .btn-del   { background: #1E3550; color: #8BA0B8; }
+  .btn-del:hover { background: #E53935; color: #fff; }
+
+  /* BADGES */
   .badge {
     display: inline-block; padding: 3px 10px; border-radius: 20px;
     font-size: 0.75rem; font-weight: bold;
   }
-  .badge-verde    { background: #1A6B3A; color: #4ADE80; }
-  .badge-naranja  { background: #7A3D00; color: #FF8C00; }
-  .badge-gris     { background: #2A3540; color: #8BA0B8; }
-  .badge-rojo     { background: #3A0000; color: #E53935; }
-  .badge-dorado   { background: #3A2A00; color: #C9A84C; }
+  .badge-verde   { background: #1A6B3A; color: #4ADE80; }
+  .badge-naranja { background: #7A3D00; color: #FF8C00; }
+  .badge-gris    { background: #2A3540; color: #8BA0B8; }
+  .badge-rojo    { background: #3A0000; color: #E53935; }
+  .badge-dorado  { background: #3A2A00; color: #C9A84C; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; background: #1A6B3A;
+    color: #4ADE80; padding: 12px 20px; border-radius: 8px; font-size: 0.9rem;
+    display: none; z-index: 999; border: 1px solid #4ADE80;
+  }
 
   .loading { text-align: center; color: #8BA0B8; padding: 40px; font-size: 0.9rem; }
   .empty   { text-align: center; color: #4E6A84; padding: 40px; font-size: 0.9rem; }
@@ -114,7 +165,7 @@
 </head>
 <body>
 
-<!-- ════════════════ LOGIN ════════════════ -->
+<!-- LOGIN -->
 <div id="login-screen">
   <h1>BURGOL</h1>
   <p>Panel de Administración</p>
@@ -124,7 +175,7 @@
   <span id="login-error">Contraseña incorrecta</span>
 </div>
 
-<!-- ════════════════ PANEL ════════════════ -->
+<!-- PANEL -->
 <div id="panel">
   <header>
     <h1>⚽ BURGOL ADMIN</h1>
@@ -144,27 +195,55 @@
 
     <!-- DASHBOARD -->
     <div class="section active" id="sec-dashboard">
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card"><div class="num" id="st-usuarios">…</div><div class="lbl">Usuarios registrados</div></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="num" id="st-usuarios">…</div><div class="lbl">Usuarios</div></div>
         <div class="stat-card"><div class="num" id="st-partidos">…</div><div class="lbl">Partidos totales</div></div>
-        <div class="stat-card"><div class="num" id="st-abiertos">…</div><div class="lbl">Partidos abiertos</div></div>
+        <div class="stat-card"><div class="num" id="st-abiertos">…</div><div class="lbl">Partidos activos</div></div>
         <div class="stat-card"><div class="num" id="st-reportes">…</div><div class="lbl">Reportes totales</div></div>
         <div class="stat-card"><div class="num" id="st-logros">…</div><div class="lbl">Logros desbloqueados</div></div>
         <div class="stat-card"><div class="num" id="st-valoraciones">…</div><div class="lbl">Valoraciones emitidas</div></div>
+      </div>
+
+      <div class="destacados">
+        <div class="dest-card" id="card-mas-activo">
+          <div class="dest-titulo">⭐ Jugador más activo</div>
+          <div class="dest-valor" id="dest-activo">…</div>
+          <div class="dest-sub" id="dest-activo-sub"></div>
+        </div>
+        <div class="dest-card alerta" id="card-mas-reportado">
+          <div class="dest-titulo">⚠️ Jugador más reportado</div>
+          <div class="dest-valor" id="dest-reportado">…</div>
+          <div class="dest-sub" id="dest-reportado-sub"></div>
+        </div>
+      </div>
+
+      <div class="grafica-wrap">
+        <div class="grafica-titulo">Estado de los partidos</div>
+        <canvas id="grafica-estados" width="360" height="260"></canvas>
       </div>
     </div>
 
     <!-- USUARIOS -->
     <div class="section" id="sec-usuarios">
       <div class="section-title">Usuarios registrados</div>
-      <input class="search-bar" id="buscar-usuario" placeholder="🔍 Buscar por alias..." oninput="filtrarUsuarios()"/>
+      <div class="toolbar">
+        <input class="search-bar" id="buscar-usuario" placeholder="🔍 Buscar por alias o nombre..." oninput="filtrarUsuarios()"/>
+        <button class="btn-export" onclick="exportarCSV('usuarios')">⬇ Exportar CSV</button>
+      </div>
       <div class="tabla-wrap">
-        <table>
+        <table id="tabla-usuarios">
           <thead><tr>
-            <th>ID</th><th>Alias</th><th>Nombre</th><th>Email</th>
-            <th>Rango</th><th>XP</th><th>Actitud</th><th>Reportes</th>
+            <th onclick="ordenarTabla('usuarios',0)">ID<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('usuarios',1)">Alias<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('usuarios',2)">Nombre</th>
+            <th onclick="ordenarTabla('usuarios',3)">Email</th>
+            <th onclick="ordenarTabla('usuarios',4)">Rango<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('usuarios',5)">XP<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('usuarios',6)">Actitud<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('usuarios',7)">Reportes<span class="sort-icon">↕</span></th>
+            <th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-usuarios"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+          <tbody id="tbody-usuarios"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -172,13 +251,22 @@
     <!-- PARTIDOS -->
     <div class="section" id="sec-partidos">
       <div class="section-title">Partidos</div>
+      <div class="toolbar">
+        <button class="btn-export" onclick="exportarCSV('partidos')">⬇ Exportar CSV</button>
+      </div>
       <div class="tabla-wrap">
-        <table>
+        <table id="tabla-partidos">
           <thead><tr>
-            <th>ID</th><th>Campo</th><th>Fecha y hora</th><th>Tipo</th>
-            <th>Jugadores</th><th>Estado</th><th>Creador</th>
+            <th onclick="ordenarTabla('partidos',0)">ID<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('partidos',1)">Campo<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('partidos',2)">Fecha y hora<span class="sort-icon">↕</span></th>
+            <th>Tipo</th>
+            <th onclick="ordenarTabla('partidos',4)">Jugadores<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('partidos',5)">Estado<span class="sort-icon">↕</span></th>
+            <th>Creador</th>
+            <th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-partidos"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+          <tbody id="tbody-partidos"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -186,12 +274,22 @@
     <!-- REPORTES -->
     <div class="section" id="sec-reportes">
       <div class="section-title">Reportes recibidos</div>
+      <div class="toolbar">
+        <input class="search-bar" id="buscar-reporte" placeholder="🔍 Buscar por alias..." oninput="filtrarReportes()"/>
+        <button class="btn-export" onclick="exportarCSV('reportes')">⬇ Exportar CSV</button>
+      </div>
       <div class="tabla-wrap">
-        <table>
+        <table id="tabla-reportes">
           <thead><tr>
-            <th>ID</th><th>Partido</th><th>Emisor</th><th>Receptor</th><th>Motivo</th><th>Fecha</th>
+            <th onclick="ordenarTabla('reportes',0)">ID<span class="sort-icon">↕</span></th>
+            <th>Partido</th>
+            <th onclick="ordenarTabla('reportes',2)">Emisor<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('reportes',3)">Receptor<span class="sort-icon">↕</span></th>
+            <th>Motivo</th>
+            <th onclick="ordenarTabla('reportes',5)">Fecha<span class="sort-icon">↕</span></th>
+            <th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-reportes"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          <tbody id="tbody-reportes"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -199,10 +297,16 @@
     <!-- LOGROS -->
     <div class="section" id="sec-logros">
       <div class="section-title">Logros desbloqueados</div>
+      <div class="toolbar">
+        <button class="btn-export" onclick="exportarCSV('logros')">⬇ Exportar CSV</button>
+      </div>
       <div class="tabla-wrap">
-        <table>
+        <table id="tabla-logros">
           <thead><tr>
-            <th>ID</th><th>Usuario</th><th>Logro</th><th>Fecha conseguido</th>
+            <th>ID</th>
+            <th onclick="ordenarTabla('logros',1)">Usuario<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('logros',2)">Logro<span class="sort-icon">↕</span></th>
+            <th onclick="ordenarTabla('logros',3)">Fecha<span class="sort-icon">↕</span></th>
           </tr></thead>
           <tbody id="tbody-logros"><tr><td colspan="4" class="loading">Cargando...</td></tr></tbody>
         </table>
@@ -212,13 +316,24 @@
   </main>
 </div>
 
+<div id="toast"></div>
+
 <script>
-// ── CONFIGURACIÓN ────────────────────────────────────────────────
+// ── CONFIG ────────────────────────────────────────────────────────
 const PASS         = "burgol2025";
 const SUPABASE_URL = "https://frvnrkhmvtzawmatmxjz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_olkEWBh1JTsaf078Q9Bnwg_q2Eh6rtU";
 
-// ── LOGIN ────────────────────────────────────────────────────────
+// ── DATOS EN MEMORIA ──────────────────────────────────────────────
+let todosUsuarios  = [];
+let todosPartidos  = [];
+let todosReportes  = [];
+let todosLogros    = [];
+let todosCampos    = [];
+let todasInscripciones = [];
+let sortDir = {};
+
+// ── LOGIN ─────────────────────────────────────────────────────────
 function comprobarPass() {
   const val = document.getElementById("input-pass").value;
   if (val === PASS) {
@@ -226,11 +341,7 @@ function comprobarPass() {
     document.getElementById("panel").style.display = "block";
     document.getElementById("header-fecha").textContent =
       new Date().toLocaleDateString("es-ES", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-    cargarDashboard();
-    cargarUsuarios();
-    cargarPartidos();
-    cargarReportes();
-    cargarLogros();
+    cargarTodo();
   } else {
     document.getElementById("login-error").style.display = "block";
   }
@@ -243,7 +354,7 @@ function cerrarSesion() {
   document.getElementById("login-error").style.display = "none";
 }
 
-// ── TABS ─────────────────────────────────────────────────────────
+// ── TABS ──────────────────────────────────────────────────────────
 function mostrarTab(nombre) {
   document.querySelectorAll(".tab").forEach((t, i) => {
     const nombres = ["dashboard","usuarios","partidos","reportes","logros"];
@@ -253,7 +364,7 @@ function mostrarTab(nombre) {
   document.getElementById("sec-" + nombre).classList.add("active");
 }
 
-// ── SUPABASE FETCH ────────────────────────────────────────────────
+// ── FETCH ─────────────────────────────────────────────────────────
 async function fetchSupabase(tabla, params = "") {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${params}`, {
     headers: {
@@ -262,38 +373,108 @@ async function fetchSupabase(tabla, params = "") {
       "Content-Type": "application/json"
     }
   });
-  return await res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
-// ── DASHBOARD ────────────────────────────────────────────────────
-async function cargarDashboard() {
-  const [usuarios, partidos, reportes, logros, valoraciones] = await Promise.all([
-    fetchSupabase("Usuarios", "select=id_usuario"),
-    fetchSupabase("Partidos", "select=id_partido,estado"),
-    fetchSupabase("Reportes", "select=id_reporte"),
-    fetchSupabase("LogrosConseguidos", "select=id_logro_conseguido"),
+async function deleteSupabase(tabla, campo, valor) {
+  await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${campo}=eq.${valor}`, {
+    method: "DELETE",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    }
+  });
+}
+
+async function patchSupabase(tabla, campo, valor, body) {
+  await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${campo}=eq.${valor}`, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    body: JSON.stringify(body)
+  });
+}
+
+// ── CARGAR TODO ───────────────────────────────────────────────────
+async function cargarTodo() {
+  const [u, p, r, l, c, i, v] = await Promise.all([
+    fetchSupabase("Usuarios", "select=id_usuario,alias,nombre_real,email,nivel_rango,puntos_experiencia,val_actitud_cache,total_reportes&order=puntos_experiencia.desc"),
+    fetchSupabase("Partidos", "select=id_partido,id_creador,id_campo,fecha_hora,num_max,estado&order=id_partido.desc"),
+    fetchSupabase("Reportes", "select=id_reporte,id_partido,id_emisor,id_receptor,motivo,fecha&order=id_reporte.desc"),
+    fetchSupabase("LogrosConseguidos", "select=id_logro_conseguido,id_usuario,codigo_logro,fecha_conseguido&order=id_logro_conseguido.desc"),
+    fetchSupabase("Campos", "select=id_campo,nombre,tipo_campo"),
+    fetchSupabase("Inscripciones", "select=id_partido,id_usuario"),
     fetchSupabase("Valoraciones", "select=id_valoracion"),
   ]);
-  const abiertos = partidos.filter(p => p.estado === "Abierto" || p.estado === "Completo").length;
-  document.getElementById("st-usuarios").textContent     = usuarios.length;
-  document.getElementById("st-partidos").textContent     = partidos.length;
+  todosUsuarios      = u;
+  todosPartidos      = p;
+  todosReportes      = r;
+  todosLogros        = l;
+  todosCampos        = c;
+  todasInscripciones = i;
+
+  // Stats
+  const abiertos = p.filter(x => x.estado === "Abierto" || x.estado === "Completo").length;
+  document.getElementById("st-usuarios").textContent     = u.length;
+  document.getElementById("st-partidos").textContent     = p.length;
   document.getElementById("st-abiertos").textContent     = abiertos;
-  document.getElementById("st-reportes").textContent     = reportes.length;
-  document.getElementById("st-logros").textContent       = logros.length;
-  document.getElementById("st-valoraciones").textContent = valoraciones.length;
-}
+  document.getElementById("st-reportes").textContent     = r.length;
+  document.getElementById("st-logros").textContent       = l.length;
+  document.getElementById("st-valoraciones").textContent = v.length;
 
-// ── USUARIOS ─────────────────────────────────────────────────────
-let todosUsuarios = [];
-async function cargarUsuarios() {
-  todosUsuarios = await fetchSupabase("Usuarios",
-    "select=id_usuario,alias,nombre_real,email,nivel_rango,puntos_experiencia,val_actitud_cache,total_reportes&order=puntos_experiencia.desc");
+  // Jugador más activo (más inscripciones en partidos finalizados)
+  const finalizados = p.filter(x => x.estado === "Finalizado").map(x => x.id_partido);
+  const conteoJugador = {};
+  i.forEach(ins => {
+    if (finalizados.includes(ins.id_partido)) {
+      conteoJugador[ins.id_usuario] = (conteoJugador[ins.id_usuario] || 0) + 1;
+    }
+  });
+  const masActivoId = Object.keys(conteoJugador).sort((a,b) => conteoJugador[b] - conteoJugador[a])[0];
+  const masActivo   = u.find(x => x.id_usuario == masActivoId);
+  document.getElementById("dest-activo").textContent     = masActivo ? "@" + masActivo.alias : "Sin datos";
+  document.getElementById("dest-activo-sub").textContent = masActivo ? `${conteoJugador[masActivoId]} partidos jugados` : "";
+
+  // Jugador más reportado
+  const masReportado = [...u].sort((a,b) => (b.total_reportes||0) - (a.total_reportes||0))[0];
+  document.getElementById("dest-reportado").textContent     = masReportado ? "@" + masReportado.alias : "Sin datos";
+  document.getElementById("dest-reportado-sub").textContent = masReportado ? `${masReportado.total_reportes || 0} reportes acumulados` : "";
+  if ((masReportado?.total_reportes || 0) >= 5) {
+    document.getElementById("card-mas-reportado").style.borderColor = "#E53935";
+  }
+
+  // Gráfica
+  const ab = p.filter(x => x.estado === "Abierto").length;
+  const co = p.filter(x => x.estado === "Completo").length;
+  const fi = p.filter(x => x.estado === "Finalizado").length;
+  new Chart(document.getElementById("grafica-estados"), {
+    type: "doughnut",
+    data: {
+      labels: ["Abierto", "Completo", "Finalizado"],
+      datasets: [{ data: [ab, co, fi], backgroundColor: ["#1A6B3A","#7A3D00","#2A3540"], borderWidth: 0 }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: "#8BA0B8", font: { size: 13 } } } }
+    }
+  });
+
   renderUsuarios(todosUsuarios);
+  renderPartidos(todosPartidos);
+  renderReportes(todosReportes);
+  renderLogros(todosLogros);
 }
 
+// ── USUARIOS ──────────────────────────────────────────────────────
 function renderUsuarios(lista) {
   const tbody = document.getElementById("tbody-usuarios");
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin usuarios</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">Sin usuarios</td></tr>'; return; }
   tbody.innerHTML = lista.map(u => `
     <tr>
       <td>${u.id_usuario}</td>
@@ -302,35 +483,36 @@ function renderUsuarios(lista) {
       <td style="color:#8BA0B8;font-size:0.8rem">${u.email}</td>
       <td>${badgeRango(u.nivel_rango)}</td>
       <td><strong>${u.puntos_experiencia}</strong> XP</td>
-      <td>${(u.val_actitud_cache || 0).toFixed(1)} ★</td>
-      <td>${u.total_reportes > 0 ? `<span class="badge badge-rojo">${u.total_reportes}</span>` : `<span style="color:#4E6A84">0</span>`}</td>
+      <td>${(u.val_actitud_cache||0).toFixed(1)} ★</td>
+      <td>${(u.total_reportes||0) > 0 ? `<span class="badge badge-rojo">${u.total_reportes}</span>` : `<span style="color:#4E6A84">0</span>`}</td>
+      <td>
+        <button class="btn-accion btn-ban" onclick="banearUsuario(${u.id_usuario},'${u.alias}')">🚫 Banear</button>
+      </td>
     </tr>`).join("");
 }
 
 function filtrarUsuarios() {
   const q = document.getElementById("buscar-usuario").value.toLowerCase();
-  renderUsuarios(todosUsuarios.filter(u => u.alias.toLowerCase().includes(q) || u.nombre_real.toLowerCase().includes(q)));
+  renderUsuarios(todosUsuarios.filter(u =>
+    u.alias.toLowerCase().includes(q) || u.nombre_real.toLowerCase().includes(q)
+  ));
 }
 
-function badgeRango(r) {
-  const map = { Debutante:"badge-gris", Promesa:"badge-naranja", Titular:"badge-gris", "Capitán":"badge-dorado", Estrella:"badge-dorado" };
-  return `<span class="badge ${map[r]||'badge-gris'}">${r}</span>`;
+async function banearUsuario(id, alias) {
+  if (!confirm(`¿Banear a @${alias}? Sus puntos se pondrán a 0.`)) return;
+  await patchSupabase("Usuarios", "id_usuario", id, { puntos_experiencia: 0, nivel_rango: "Debutante" });
+  mostrarToast(`@${alias} baneado correctamente`);
+  await cargarTodo();
 }
 
-// ── PARTIDOS ─────────────────────────────────────────────────────
-async function cargarPartidos() {
-  const [partidos, campos, inscripciones, usuarios] = await Promise.all([
-    fetchSupabase("Partidos", "select=id_partido,id_creador,id_campo,fecha_hora,num_max,estado&order=id_partido.desc"),
-    fetchSupabase("Campos", "select=id_campo,nombre,tipo_campo"),
-    fetchSupabase("Inscripciones", "select=id_partido,id_usuario"),
-    fetchSupabase("Usuarios", "select=id_usuario,alias"),
-  ]);
+// ── PARTIDOS ──────────────────────────────────────────────────────
+function renderPartidos(lista) {
   const tbody = document.getElementById("tbody-partidos");
-  if (!partidos.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin partidos</td></tr>'; return; }
-  tbody.innerHTML = partidos.map(p => {
-    const campo    = campos.find(c => c.id_campo === p.id_campo) || {};
-    const inscritos = inscripciones.filter(i => i.id_partido === p.id_partido).length;
-    const creador  = usuarios.find(u => u.id_usuario === p.id_creador) || {};
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin partidos</td></tr>'; return; }
+  tbody.innerHTML = lista.map(p => {
+    const campo    = todosCampos.find(c => c.id_campo === p.id_campo) || {};
+    const inscritos = todasInscripciones.filter(i => i.id_partido === p.id_partido).length;
+    const creador  = todosUsuarios.find(u => u.id_usuario === p.id_creador) || {};
     const badgeEst = p.estado === "Abierto" ? "badge-verde" : p.estado === "Completo" ? "badge-naranja" : "badge-gris";
     return `<tr>
       <td>${p.id_partido}</td>
@@ -340,21 +522,30 @@ async function cargarPartidos() {
       <td>${inscritos} / ${p.num_max}</td>
       <td><span class="badge ${badgeEst}">${p.estado}</span></td>
       <td style="color:#C9A84C">@${creador.alias || p.id_creador}</td>
+      <td>
+        <button class="btn-accion btn-del" onclick="borrarPartido(${p.id_partido})">🗑 Borrar</button>
+      </td>
     </tr>`;
   }).join("");
 }
 
-// ── REPORTES ─────────────────────────────────────────────────────
-async function cargarReportes() {
-  const [reportes, usuarios] = await Promise.all([
-    fetchSupabase("Reportes", "select=id_reporte,id_partido,id_emisor,id_receptor,motivo,fecha&order=id_reporte.desc"),
-    fetchSupabase("Usuarios", "select=id_usuario,alias"),
-  ]);
+async function borrarPartido(id) {
+  if (!confirm(`¿Borrar el partido #${id}? Esta acción no se puede deshacer.`)) return;
+  await deleteSupabase("Inscripciones", "id_partido", id);
+  await deleteSupabase("Valoraciones",  "id_partido", id);
+  await deleteSupabase("Reportes",      "id_partido", id);
+  await deleteSupabase("Partidos",      "id_partido", id);
+  mostrarToast(`Partido #${id} borrado`);
+  await cargarTodo();
+}
+
+// ── REPORTES ──────────────────────────────────────────────────────
+function renderReportes(lista) {
   const tbody = document.getElementById("tbody-reportes");
-  if (!reportes.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin reportes</td></tr>'; return; }
-  tbody.innerHTML = reportes.map(r => {
-    const emisor   = usuarios.find(u => u.id_usuario === r.id_emisor)   || {};
-    const receptor = usuarios.find(u => u.id_usuario === r.id_receptor) || {};
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin reportes</td></tr>'; return; }
+  tbody.innerHTML = lista.map(r => {
+    const emisor   = todosUsuarios.find(u => u.id_usuario === r.id_emisor)   || {};
+    const receptor = todosUsuarios.find(u => u.id_usuario === r.id_receptor) || {};
     return `<tr>
       <td>${r.id_reporte}</td>
       <td>Partido #${r.id_partido}</td>
@@ -362,27 +553,42 @@ async function cargarReportes() {
       <td style="color:#E53935">@${receptor.alias || r.id_receptor}</td>
       <td>${r.motivo}</td>
       <td style="color:#4E6A84;font-size:0.8rem">${r.fecha}</td>
+      <td>
+        <button class="btn-accion btn-del" onclick="borrarReporte(${r.id_reporte})">🗑 Borrar</button>
+      </td>
     </tr>`;
   }).join("");
 }
 
-// ── LOGROS ───────────────────────────────────────────────────────
+function filtrarReportes() {
+  const q = document.getElementById("buscar-reporte").value.toLowerCase();
+  renderReportes(todosReportes.filter(r => {
+    const emisor   = todosUsuarios.find(u => u.id_usuario === r.id_emisor)   || {};
+    const receptor = todosUsuarios.find(u => u.id_usuario === r.id_receptor) || {};
+    return (emisor.alias||"").toLowerCase().includes(q) || (receptor.alias||"").toLowerCase().includes(q);
+  }));
+}
+
+async function borrarReporte(id) {
+  if (!confirm(`¿Borrar el reporte #${id}?`)) return;
+  await deleteSupabase("Reportes", "id_reporte", id);
+  mostrarToast(`Reporte #${id} borrado`);
+  await cargarTodo();
+}
+
+// ── LOGROS ────────────────────────────────────────────────────────
 const NOMBRES_LOGROS = {
-  primer_partido: "Primer toque", cinco_partidos: "De la cantera",
-  diez_partidos: "Habitual", veinticinco_partidos: "Leyenda local",
-  diez_valoraciones_cinco: "Buen compañero", valorar_veinte: "Embajador",
-  cinco_partidos_creados: "Organizador", poco_margen: "Puntual", sin_reportes: "Sin tacha"
+  primer_partido:"Primer toque", cinco_partidos:"De la cantera",
+  diez_partidos:"Habitual", veinticinco_partidos:"Leyenda local",
+  diez_valoraciones_cinco:"Buen compañero", valorar_veinte:"Embajador",
+  cinco_partidos_creados:"Organizador", poco_margen:"Puntual", sin_reportes:"Sin tacha"
 };
 
-async function cargarLogros() {
-  const [logros, usuarios] = await Promise.all([
-    fetchSupabase("LogrosConseguidos", "select=id_logro_conseguido,id_usuario,codigo_logro,fecha_conseguido&order=id_logro_conseguido.desc"),
-    fetchSupabase("Usuarios", "select=id_usuario,alias"),
-  ]);
+function renderLogros(lista) {
   const tbody = document.getElementById("tbody-logros");
-  if (!logros.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Sin logros desbloqueados</td></tr>'; return; }
-  tbody.innerHTML = logros.map(l => {
-    const usuario = usuarios.find(u => u.id_usuario === l.id_usuario) || {};
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Sin logros desbloqueados</td></tr>'; return; }
+  tbody.innerHTML = lista.map(l => {
+    const usuario = todosUsuarios.find(u => u.id_usuario === l.id_usuario) || {};
     return `<tr>
       <td>${l.id_logro_conseguido}</td>
       <td style="color:#C9A84C">@${usuario.alias || l.id_usuario}</td>
@@ -390,6 +596,62 @@ async function cargarLogros() {
       <td style="color:#4E6A84;font-size:0.8rem">${l.fecha_conseguido}</td>
     </tr>`;
   }).join("");
+}
+
+// ── ORDENAR TABLAS ────────────────────────────────────────────────
+function ordenarTabla(tabla, col) {
+  const key = tabla + col;
+  sortDir[key] = !sortDir[key];
+  const asc = sortDir[key];
+
+  function val(fila, i) {
+    const celdas = fila.querySelectorAll("td");
+    return celdas[i] ? celdas[i].textContent.trim() : "";
+  }
+
+  const tbody = document.getElementById("tbody-" + tabla);
+  const filas = Array.from(tbody.querySelectorAll("tr"));
+  filas.sort((a, b) => {
+    const va = val(a, col);
+    const vb = val(b, col);
+    const na = parseFloat(va.replace(/[^\d.-]/g, ""));
+    const nb = parseFloat(vb.replace(/[^\d.-]/g, ""));
+    if (!isNaN(na) && !isNaN(nb)) return asc ? na - nb : nb - na;
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  filas.forEach(f => tbody.appendChild(f));
+}
+
+// ── EXPORTAR CSV ──────────────────────────────────────────────────
+function exportarCSV(tabla) {
+  const t = document.getElementById("tabla-" + tabla);
+  if (!t) return;
+  const filas = Array.from(t.querySelectorAll("tr"));
+  const csv = filas.map(fila =>
+    Array.from(fila.querySelectorAll("th,td"))
+      .slice(0, -1) // quitar columna acciones
+      .map(c => '"' + c.textContent.trim().replace(/"/g,'""') + '"')
+      .join(",")
+  ).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `burgol_${tabla}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── BADGE RANGO ───────────────────────────────────────────────────
+function badgeRango(r) {
+  const map = { Debutante:"badge-gris", Promesa:"badge-naranja", Titular:"badge-gris", "Capitán":"badge-dorado", Estrella:"badge-dorado" };
+  return `<span class="badge ${map[r]||'badge-gris'}">${r||"—"}</span>`;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function mostrarToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = "✓ " + msg;
+  t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 3000);
 }
 </script>
 </body>
